@@ -25,7 +25,7 @@ html, body, #container, #content, #canvas {
 
 #title .text {
     background-color: white;
-    margin-left: -21px;
+    margin-left: 28px;
      transition-property:        margin-left;
      transition-duration:        1s;
     -moz-transition-property:    margin-left;
@@ -37,9 +37,10 @@ html, body, #container, #content, #canvas {
     white-space: nowrap;
 }
 
+/* Title Animation - disabled *//*
 #title .text:hover {
     margin-left: 42px;
-}
+}*/
 
 #title .browser-warning {
     margin-left: 16px;
