@@ -1,0 +1,145 @@
+html, body, #container, #content, #canvas {
+    margin: 0;
+    height: 100%;
+    width: 100%;
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#content div { position: absolute; }
+
+#title {
+    margin: 24px;
+    margin-left: 0;
+    font: 24px/24px futura-pt, Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    letter-spacing: .24em;
+    z-index: 2;
+}
+
+#title .three {
+    padding-left: 24px;
+    background-color: white;
+}
+
+#title .text {
+    background-color: white;
+    margin-left: -21px;
+     transition-property:        margin-left;
+     transition-duration:        1s;
+    -moz-transition-property:    margin-left;
+    -moz-transition-duration:    1s;
+    -webkit-transition-property: margin-left;
+    -webkit-transition-duration: 1s;
+    -o-transition-property:      margin-left;
+    -o-transition-duration:      1s;
+    white-space: nowrap;
+}
+
+#title .text:hover {
+    margin-left: 42px;
+}
+
+#title .browser-warning {
+    margin-left: 16px;
+    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    letter-spacing: .1em;
+    color: #777;
+}
+
+#controls {
+    margin: 24px;
+    float: left;
+    bottom: 0px;
+    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    letter-spacing: .1em;
+    color: #777;
+    height: 360px;
+}
+
+#controls div {
+    position: relative;
+    float: left;
+}
+
+/* Prevent unwanted text selection */
+#controls div.text {
+    z-index: -1;
+}
+
+#controls .labels {
+    text-align: right;
+    clear: left;
+}
+
+#controls .entries {
+    text-align: left;
+}
+
+#controls .directions {
+    clear: left;
+}
+
+#controls .no-fade {
+    position: absolute;
+    top: -68px;
+    width: 300px;
+}
+
+#controls .show-hide {
+    background: url('../images/arrow-black.png') center no-repeat;
+    padding: 12px;
+    width: 11px;
+    height: 11px;
+    margin: 16px;
+    margin-left: 7px;
+}
+
+#demo-btn {
+    background-color: white;
+    width: 165px;
+    height: 34px;
+    position: relative;
+    color: red;
+    letter-spacing: .24em;
+    font-size: 16px;
+    border: solid 1px black;
+    margin: 16px;
+    cursor: pointer;
+}
+
+#demo-btn div {
+    width: 100%;
+    padding: 8px 2px;
+    position: absolute;
+    text-align: center;
+}
+
+#demo-btn .replay {
+    padding: 0;
+}
+
+#demo-btn .replay div {
+    position: relative;
+    padding: 8px 0;
+}
+
+#demo-btn .again {
+    width: 56%;
+    text-indent: 2px;
+}
+
+#demo-btn .new {
+    width: 43%;
+    border-left: solid 1px black;
+    text-indent: 4px;
+}
+
+#canvas .demo-tooltip {
+    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
+    font-weight: 300;
+    letter-spacing: .1em;
+}
