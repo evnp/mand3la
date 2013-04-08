@@ -1,4 +1,4 @@
-3d-recursion
-============
+mand3la
+=======
 
-A simple modelling tool that can be used to create recursive 3-dimensional objects.
+A 3-dimensional Mandelbrot set (Mandelbulb) viewer.
