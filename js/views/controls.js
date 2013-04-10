@@ -7,9 +7,7 @@ define([
 
     'text!templates/controls.html',
 
-    'views/demo'
-
-], function ($, _, Backbone, hotkeys, longkeys, template, Demo) {
+], function ($, _, Backbone, hotkeys, longkeys, template) {
 
     return Backbone.View.extend({
 
@@ -90,63 +88,6 @@ define([
 
             function showControls() {
                 if (text.is(':hidden')) toggleControls();
-            }
-
-            // Set up demo
-            var demo   = new Demo(canvas)
-              , button = this.$('#demo-btn')
-              , start  = button.find('div,start')
-              , pause  = button.find('div.pause')
-              , play   = button.find('div.play')
-              , replay = button.find('div.replay')
-              , again  = replay.find('div.again')
-              , regen  = replay.find('div.new')
-              , firstRun = true;
-
-            // Route events
-            button.on('click',  controlDemo);
-            demo.on('complete', completeDemo);
-
-            function controlDemo() {
-                if (!demo.running) {
-                    start.fadeOut();
-                    newDemo();
-                    if (firstRun) hideControls();
-                    firstRun = false;
-
-                } else if (demo.paused) {
-                    play.fadeOut();
-                    pause.fadeIn();
-
-                    demo.play();
-
-                } else {
-                    pause.fadeOut();
-                    play.fadeIn();
-
-                    demo.pause();
-                }
-            }
-
-            function completeDemo() {
-                button.find('div').fadeOut();
-                replay.fadeIn();
-
-                again.on(  'click', repeatDemo);
-                regen.on(  'click', newDemo);
-            }
-
-            function repeatDemo() { resetDemo(); return false; }
-            function newDemo()    { resetDemo(true, firstRun);  return false; }
-
-            function resetDemo(regenActions, instructional) {
-                replay.fadeOut();
-                pause.fadeIn();
-
-                again.off('click', repeatDemo);
-                regen.off('click', newDemo);
-
-                demo.start(regenActions, instructional);
             }
         }
     });

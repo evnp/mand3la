@@ -6,7 +6,7 @@ define([
     'three',
     'detector'
 
-], function ($, _, Backbone, CubeCollection) {
+], function ($, _, Backbone) {
 
     // Constants
     var W, H
@@ -30,6 +30,32 @@ define([
 
         // Scene
             this.scene = new THREE.Scene();
+
+        // Placeholder Spheres
+            var geometry = new THREE.SphereGeometry(10, 20, 20),
+                material = new THREE.MeshLambertMaterial({ color: 0xA9A9A9 }),
+                sphere1  = new THREE.Mesh(geometry, material),
+                sphere2  = new THREE.Mesh(geometry, material),
+                sphere3  = new THREE.Mesh(geometry, material),
+                sphere4  = new THREE.Mesh(geometry, material),
+                sphere5  = new THREE.Mesh(geometry, material),
+                sphere6  = new THREE.Mesh(geometry, material),
+                sphere7  = new THREE.Mesh(geometry, material);
+
+            sphere2.position.x += 30;
+            sphere3.position.x -= 30;
+            sphere4.position.y += 30;
+            sphere5.position.y -= 30;
+            sphere6.position.z += 30;
+            sphere7.position.z -= 30;
+
+            this.scene.add(sphere1);
+            this.scene.add(sphere2);
+            this.scene.add(sphere3);
+            this.scene.add(sphere4);
+            this.scene.add(sphere5);
+            this.scene.add(sphere6);
+            this.scene.add(sphere7);
 
         // Reference Plane
         // used to determine 3D mouse positions for cube creation/movement
