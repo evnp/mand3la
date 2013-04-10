@@ -13,7 +13,7 @@ define([
       , PI  = Math.PI
       , THT = 45 // Theta
       , PHI = 60
-      , FOV = 70 // Field of view for perspective camera
+      , FOV = 4 // Field of view for perspective camera
       , RENDERER = (Detector.webgl ? 'WebGL' : 'Canvas') + 'Renderer'
       , CAMSPEED = 0.4; // Speed of mouse camera rotation
 
@@ -32,30 +32,30 @@ define([
             this.scene = new THREE.Scene();
 
         // Placeholder Spheres
-            var geometry = new THREE.SphereGeometry(10, 20, 20),
-                material = new THREE.MeshLambertMaterial({ color: 0xA9A9A9 }),
-                sphere1  = new THREE.Mesh(geometry, material),
-                sphere2  = new THREE.Mesh(geometry, material),
-                sphere3  = new THREE.Mesh(geometry, material),
-                sphere4  = new THREE.Mesh(geometry, material),
-                sphere5  = new THREE.Mesh(geometry, material),
-                sphere6  = new THREE.Mesh(geometry, material),
-                sphere7  = new THREE.Mesh(geometry, material);
+            //var geometry = new THREE.SphereGeometry(10, 20, 20),
+            //    material = new THREE.MeshLambertMaterial({ color: 0xA9A9A9 }),
+            //    sphere1  = new THREE.Mesh(geometry, material),
+            //    sphere2  = new THREE.Mesh(geometry, material),
+            //    sphere3  = new THREE.Mesh(geometry, material),
+            //    sphere4  = new THREE.Mesh(geometry, material),
+            //    sphere5  = new THREE.Mesh(geometry, material),
+            //    sphere6  = new THREE.Mesh(geometry, material),
+            //    sphere7  = new THREE.Mesh(geometry, material);
 
-            sphere2.position.x += 30;
-            sphere3.position.x -= 30;
-            sphere4.position.y += 30;
-            sphere5.position.y -= 30;
-            sphere6.position.z += 30;
-            sphere7.position.z -= 30;
+            //sphere2.position.x += 30;
+            //sphere3.position.x -= 30;
+            //sphere4.position.y += 30;
+            //sphere5.position.y -= 30;
+            //sphere6.position.z += 30;
+            //sphere7.position.z -= 30;
 
-            this.scene.add(sphere1);
-            this.scene.add(sphere2);
-            this.scene.add(sphere3);
-            this.scene.add(sphere4);
-            this.scene.add(sphere5);
-            this.scene.add(sphere6);
-            this.scene.add(sphere7);
+            //this.scene.add(sphere1);
+            //this.scene.add(sphere2);
+            //this.scene.add(sphere3);
+            //this.scene.add(sphere4);
+            //this.scene.add(sphere5);
+            //this.scene.add(sphere6);
+            //this.scene.add(sphere7);
 
         // Reference Plane
         // used to determine 3D mouse positions for cube creation/movement
@@ -119,6 +119,170 @@ define([
             }
 
             onWindowResized(null);
+
+        // Render Fractal
+            var sphere   = getIcosphereInfo(12),
+                faces    = getIcosphereGeometry(sphere.iterations),
+                geometry = new THREE.BufferGeometry();
+
+            geometry.attributes = {
+              position: {
+                itemSize: 3,
+                array: faces,
+                numItems: sphere.faces * 3 * 3
+              },
+              normal: {
+                itemSize: 3,
+                array: faces,
+                numItems: sphere.faces * 3 * 3
+              },
+              color: {
+                itemSize: 3,
+                array: getArrayOf( sphere.faces * 3 * 3, 80 ),
+                numItems: sphere.faces * 3 * 3
+              }
+            };
+
+            geometry.computeBoundingSphere();
+
+            mesh = new THREE.Mesh(
+              geometry,
+              new THREE.MeshLambertMaterial({ color: 0xA9A9A9 })
+            );
+
+            this.scene.add(mesh);
+
+            function getIcosphereInfo(size) {
+              var info = {
+                vertices   : 12,
+                edges      : 30,
+                faces      : 20,
+                iterations : 0
+              };
+
+              while (info.vertices + info.edges < size) {
+                info.vertices += info.edges;
+                info.edges    *= 2;
+                info.faces    *= 4;
+                info.iterations++;
+              }
+              return info;
+            }
+
+            function getIcosphereGeometry(iterations) {
+              var t = (1.0 + Math.sqrt(5.0)) / 2.0,
+                  vertices = [
+                    [ -1,  t,  0 ],
+                    [  1,  t,  0 ],
+                    [ -1, -t,  0 ],
+                    [  1, -t,  0 ],
+                    [  0, -1,  t ],
+                    [  0,  1,  t ],
+                    [  0, -1, -t ],
+                    [  0,  1, -t ],
+                    [  t,  0, -1 ],
+                    [  t,  0,  1 ],
+                    [ -t,  0, -1 ],
+                    [ -t,  0,  1 ]
+                  ],
+                  faces = [ // Numbers represent indices of vertices
+                    // 5 faces around point 0
+                    [ 0, 11,  5 ],
+                    [ 0,  5,  1 ],
+                    [ 0,  1,  7 ],
+                    [ 0,  7, 10 ],
+                    [ 0, 10, 11 ],
+
+                    // 5 adjacent faces
+                    [ 1,  5,  9 ],
+                    [ 5,  11, 4 ],
+                    [ 11, 10, 2 ],
+                    [ 10, 7,  6 ],
+                    [ 7,  1,  8 ],
+
+                    // 5 faces around point 3
+                    [ 3, 9, 4 ],
+                    [ 3, 4, 2 ],
+                    [ 3, 2, 6 ],
+                    [ 3, 6, 8 ],
+                    [ 3, 8, 9 ],
+
+                    // 5 adjacent faces
+                    [ 4, 9,  5 ],
+                    [ 2, 4, 11 ],
+                    [ 6, 2, 10 ],
+                    [ 8, 6,  7 ],
+                    [ 9, 8,  1 ]
+                  ];
+
+              // Refine geometry
+              //for ( var i = 0; i < iterations; i++ ) {
+
+              //  refinedFaces = new Float32Array( faces.length * 4 )
+
+              //  // For each face...
+              //  for ( var j = 0; j < faces.length; j++ ) {
+              //    var a = getMidpoint(vertices[faces[j][0]], vertices[faces[j][1]]),
+              //        b = getMidpoint(vertices[faces[j][1]], vertices[faces[j][2]]),
+              //        c = getMidpoint(vertices[faces[j][2]], vertices[faces[j][0]]),
+
+              //        // Get new vertices' indices in vertex array
+              //        ai = vertices.length,
+              //        bi = ai + 1,
+              //        ci = bi + 1;
+
+              //    vertices.push(a);
+              //    vertices.push(b);
+              //    vertices.push(c);
+
+              //    // Split face into 4 separate faces
+              //    for ( var k = 0; k < 4; k++) {
+              //      refinedFaces[(j * 4) + k][0] = [ faces[j][0], ai, ci ];
+              //      refinedFaces[(j * 4) + k][1] = [ faces[j][1], bi, ai ];
+              //      refinedFaces[(j * 4) + k][2] = [ faces[j][2], ci, bi ];
+              //      refinedFaces[(j * 4) + k][3] = [          ai, bi, ci ];
+              //    }
+              //  }
+
+              //  faces = refinedFaces;
+              //}
+
+              var icosphere = new Float32Array( faces.length * 3 * 3 );
+              for ( var i = 0; i < faces.length; i++ ) {
+                for ( var j = 0; j < 3; j++) {
+                  for ( var k = 0; k < 3; k++) {
+                    icosphere[i*9 + j*3 + k] = vertices[faces[i][j]][k];
+                  }
+                }
+              }
+
+              return icosphere;
+            }
+
+            function getMidpoint(a, b) {
+              return [0,0,0];
+            }
+
+            function getArrayOf(len, item) {
+                var a, rem, currlen;
+
+                if (len == 0) {
+                    return [];
+                }
+                a = [item];
+                currlen = 1;
+                while (currlen < len) {
+                    rem = len - currlen;
+                    if (rem < currlen) {
+                        a = a.concat(a.slice(0, rem));
+                    }
+                    else {
+                        a = a.concat(a);
+                    }
+                    currlen = a.length;
+                }
+                return a;
+            }
         },
 
         render: function () {
