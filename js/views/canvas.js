@@ -121,7 +121,7 @@ define([
             onWindowResized(null);
 
         // Render Fractal
-            var sphere   = getIcosphereInfo(12),
+            var sphere   = getIcosphereInfo(10000),
                 faces    = getIcosphereGeometry(sphere.iterations),
                 geometry = new THREE.BufferGeometry();
 
@@ -213,39 +213,42 @@ define([
                     [ 6, 2, 10 ],
                     [ 8, 6,  7 ],
                     [ 9, 8,  1 ]
-                  ];
+                  ],
+                  sample = vertices[0],
+                  radius = Math.sqrt(
+                    Math.pow(sample[0], 2) +
+                    Math.pow(sample[1], 2) +
+                    Math.pow(sample[2], 2)
+                  );
 
               // Refine geometry
-              //for ( var i = 0; i < iterations; i++ ) {
+              for ( var i = 0; i < iterations; i++ ) {
 
-              //  refinedFaces = new Float32Array( faces.length * 4 )
+                refinedFaces = new Array( faces.length * 4 )
 
-              //  // For each face...
-              //  for ( var j = 0; j < faces.length; j++ ) {
-              //    var a = getMidpoint(vertices[faces[j][0]], vertices[faces[j][1]]),
-              //        b = getMidpoint(vertices[faces[j][1]], vertices[faces[j][2]]),
-              //        c = getMidpoint(vertices[faces[j][2]], vertices[faces[j][0]]),
+                // For each face...
+                for ( var j = 0; j < faces.length; j++ ) {
+                  var a = getNewVertex(vertices[faces[j][0]], vertices[faces[j][1]]),
+                      b = getNewVertex(vertices[faces[j][1]], vertices[faces[j][2]]),
+                      c = getNewVertex(vertices[faces[j][2]], vertices[faces[j][0]]),
 
-              //        // Get new vertices' indices in vertex array
-              //        ai = vertices.length,
-              //        bi = ai + 1,
-              //        ci = bi + 1;
+                      // Get new vertices' indices in vertex array
+                      ai = vertices.length,
+                      bi = ai + 1,
+                      ci = bi + 1;
 
-              //    vertices.push(a);
-              //    vertices.push(b);
-              //    vertices.push(c);
+                  vertices.push(a);
+                  vertices.push(b);
+                  vertices.push(c);
 
-              //    // Split face into 4 separate faces
-              //    for ( var k = 0; k < 4; k++) {
-              //      refinedFaces[(j * 4) + k][0] = [ faces[j][0], ai, ci ];
-              //      refinedFaces[(j * 4) + k][1] = [ faces[j][1], bi, ai ];
-              //      refinedFaces[(j * 4) + k][2] = [ faces[j][2], ci, bi ];
-              //      refinedFaces[(j * 4) + k][3] = [          ai, bi, ci ];
-              //    }
-              //  }
+                  refinedFaces[(j * 4)    ] = [ faces[j][0], ai, ci ];
+                  refinedFaces[(j * 4) + 1] = [ faces[j][1], bi, ai ];
+                  refinedFaces[(j * 4) + 2] = [ faces[j][2], ci, bi ];
+                  refinedFaces[(j * 4) + 3] = [          ai, bi, ci ];
+                }
 
-              //  faces = refinedFaces;
-              //}
+                faces = refinedFaces;
+              }
 
               var icosphere = new Float32Array( faces.length * 3 * 3 );
               for ( var i = 0; i < faces.length; i++ ) {
@@ -257,10 +260,26 @@ define([
               }
 
               return icosphere;
-            }
 
-            function getMidpoint(a, b) {
-              return [0,0,0];
+              function getNewVertex(a, b) {
+                middle = [
+                  (a[0] + b[0]) / 2,
+                  (a[1] + b[1]) / 2,
+                  (a[2] + b[2]) / 2
+                ];
+
+                var distFromCenter = Math.sqrt(
+                  Math.pow(middle[0], 2) +
+                  Math.pow(middle[1], 2) +
+                  Math.pow(middle[2], 2)
+                );
+
+                return [
+                  middle[0] * (radius / distFromCenter),
+                  middle[1] * (radius / distFromCenter),
+                  middle[2] * (radius / distFromCenter),
+                ];
+              }
             }
 
             function getArrayOf(len, item) {
