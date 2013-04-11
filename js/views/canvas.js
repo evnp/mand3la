@@ -121,38 +121,62 @@ define([
             onWindowResized(null);
 
         // Render Fractal
-            var sphere   = getIcosphereInfo(10000),
-                faces    = getIcosphereGeometry(sphere.iterations),
-                geometry = new THREE.BufferGeometry();
 
+            // Get starting sphere
+            var sphere   = getIcosphere(10000),
+                vertices = sphere.geometry.vertices,
+                faces    = sphere.geometry.faces;
+
+            // Transform sphere geometry into fractal geometry
+            for (var i = 0; i < vertices.length; i++) {
+              vertices[i] = translateToFractalEdge(vertices[i]);
+            }
+
+            // Flatten faces+vertices into 1 dimensional array for geometry
+            var positions = new Float32Array( faces.length * 3 * 3 );
+            for ( var i = 0; i < faces.length; i++ ) {
+              for ( var j = 0; j < 3; j++) {
+                for ( var k = 0; k < 3; k++) {
+                  positions[i*9 + j*3 + k] = vertices[faces[i][j]][k];
+                }
+              }
+            }
+
+            // Create geometry
+            var geometry = new THREE.BufferGeometry()
             geometry.attributes = {
               position: {
                 itemSize: 3,
-                array: faces,
+                array: positions,
                 numItems: sphere.faces * 3 * 3
               },
               normal: {
                 itemSize: 3,
-                array: faces,
-                numItems: sphere.faces * 3 * 3
+                array: positions, // Since fractal is centered at origin,
+                numItems: sphere.faces * 3 * 3 // vertex positions ARE normals.
               },
-              color: {
-                itemSize: 3,
-                array: getArrayOf( sphere.faces * 3 * 3, 80 ),
-                numItems: sphere.faces * 3 * 3
-              }
+              //color: {
+              //  itemSize: 3,
+              //  array: getArrayOf( sphere.faces * 3 * 3, 80 ),
+              //  numItems: sphere.faces * 3 * 3
+              //}
             };
 
             geometry.computeBoundingSphere();
 
+            // Create mesh
             mesh = new THREE.Mesh(
               geometry,
               new THREE.MeshLambertMaterial({ color: 0xA9A9A9 })
             );
 
+            // Add fractal to scene
             this.scene.add(mesh);
 
-            function getIcosphereInfo(size) {
+
+        // Rendering Helper Methods
+
+            function getIcosphere(size) {
               var info = {
                 vertices   : 12,
                 edges      : 30,
@@ -166,6 +190,9 @@ define([
                 info.faces    *= 4;
                 info.iterations++;
               }
+
+              info.geometry = getIcosphereGeometry(info.iterations);
+
               return info;
             }
 
@@ -250,16 +277,7 @@ define([
                 faces = refinedFaces;
               }
 
-              var icosphere = new Float32Array( faces.length * 3 * 3 );
-              for ( var i = 0; i < faces.length; i++ ) {
-                for ( var j = 0; j < 3; j++) {
-                  for ( var k = 0; k < 3; k++) {
-                    icosphere[i*9 + j*3 + k] = vertices[faces[i][j]][k];
-                  }
-                }
-              }
-
-              return icosphere;
+              return { faces: faces, vertices: vertices };
 
               function getNewVertex(a, b) {
                 middle = [
@@ -280,6 +298,10 @@ define([
                   middle[2] * (radius / distFromCenter),
                 ];
               }
+            }
+
+            function translateToFractalEdge(v) {
+              return v;
             }
 
             function getArrayOf(len, item) {
