@@ -15,7 +15,9 @@ define([
       , PHI = 60
       , FOV = 4 // Field of view for perspective camera
       , RENDERER = (Detector.webgl ? 'WebGL' : 'Canvas') + 'Renderer'
-      , CAMSPEED = 0.4; // Speed of mouse camera rotation
+      , CAMSPEED = 0.4 // Speed of mouse camera rotation
+      , RADIUS = 0 // Radius of initial sphere; used for comparison in fractal equation
+      , NUM_VERTICES = 0 // Number of vertices in initial sphere
 
     return Backbone.View.extend({
 
@@ -123,13 +125,15 @@ define([
         // Render Fractal
 
             // Get starting sphere
-            var sphere   = getIcosphere(10000),
+            var sphere   = getIcosphere(1000000),
                 vertices = sphere.geometry.vertices,
                 faces    = sphere.geometry.faces;
 
+            RADIUS = sphere.geometry.radius;
+
             // Transform sphere geometry into fractal geometry
             for (var i = 0; i < vertices.length; i++) {
-              vertices[i] = translateToFractalEdge(vertices[i]);
+              //vertices[i] = translateToFractalEdge(vertices[i], 1);
             }
 
             // Flatten faces+vertices into 1 dimensional array for geometry
@@ -186,10 +190,13 @@ define([
 
               while (info.vertices + info.edges < size) {
                 info.vertices += info.edges;
-                info.edges    *= 2;
+                info.edges    = (info.edges * 2) + (info.faces * 3);
                 info.faces    *= 4;
                 info.iterations++;
               }
+
+              NUM_VERTICES = info.vertices;
+              console.log(info)
 
               info.geometry = getIcosphereGeometry(info.iterations);
 
@@ -241,12 +248,42 @@ define([
                     [ 8, 6,  7 ],
                     [ 9, 8,  1 ]
                   ],
-                  sample = vertices[0],
-                  radius = Math.sqrt(
-                    Math.pow(sample[0], 2) +
-                    Math.pow(sample[1], 2) +
-                    Math.pow(sample[2], 2)
-                  );
+                  vhash = {}, // Used to speed up vertex index retrieval
+                  radius = getDistFromCenter(vertices[0]);
+
+              function getVertexIndex(v) {
+                if (v[0] in vhash) {
+                  if (v[1] in vhash[v[0]]) {
+                    if (v[2] in vhash[v[0]][v[1]]) {
+                      return vhash[v[0]][v[1]][v[2]];
+                    } else {
+                      vhash[v[0]][v[1]][v[2]] = vertices.length
+                    }
+                  } else {
+                    var hash = {};
+
+                    hash[v[2]] = vertices.length;
+                    vhash[v[0]][v[1]] = hash;
+                  }
+                } else {
+                  var hash1 = {}, hash2 = {};
+
+                  hash1[v[2]] = vertices.length;
+                  hash2[v[1]] = hash1;
+                  vhash[v[0]] = hash2;
+                }
+                return vertices.push(v) - 1;
+              }
+
+              function getMidpoint(a, b) {
+                var middle = [ (a[0] + b[0]) / 2,
+                               (a[1] + b[1]) / 2,
+                               (a[2] + b[2]) / 2 ],
+                    currentDist = getDistFromCenter(middle),
+                    v = push(middle, currentDist, radius);
+
+                return getVertexIndex(v);
+              }
 
               // Refine geometry
               for ( var i = 0; i < iterations; i++ ) {
@@ -255,55 +292,70 @@ define([
 
                 // For each face...
                 for ( var j = 0; j < faces.length; j++ ) {
-                  var a = getNewVertex(vertices[faces[j][0]], vertices[faces[j][1]]),
-                      b = getNewVertex(vertices[faces[j][1]], vertices[faces[j][2]]),
-                      c = getNewVertex(vertices[faces[j][2]], vertices[faces[j][0]]),
+                  var a = getMidpoint(vertices[faces[j][0]], vertices[faces[j][1]]),
+                      b = getMidpoint(vertices[faces[j][1]], vertices[faces[j][2]]),
+                      c = getMidpoint(vertices[faces[j][2]], vertices[faces[j][0]]);
 
-                      // Get new vertices' indices in vertex array
-                      ai = vertices.length,
-                      bi = ai + 1,
-                      ci = bi + 1;
-
-                  vertices.push(a);
-                  vertices.push(b);
-                  vertices.push(c);
-
-                  refinedFaces[(j * 4)    ] = [ faces[j][0], ai, ci ];
-                  refinedFaces[(j * 4) + 1] = [ faces[j][1], bi, ai ];
-                  refinedFaces[(j * 4) + 2] = [ faces[j][2], ci, bi ];
-                  refinedFaces[(j * 4) + 3] = [          ai, bi, ci ];
+                  refinedFaces[(j * 4)    ] = [ faces[j][0], a, c ];
+                  refinedFaces[(j * 4) + 1] = [ faces[j][1], b, a ];
+                  refinedFaces[(j * 4) + 2] = [ faces[j][2], c, b ];
+                  refinedFaces[(j * 4) + 3] = [           a, b, c ];
                 }
 
                 faces = refinedFaces;
               }
-
-              return { faces: faces, vertices: vertices };
-
-              function getNewVertex(a, b) {
-                middle = [
-                  (a[0] + b[0]) / 2,
-                  (a[1] + b[1]) / 2,
-                  (a[2] + b[2]) / 2
-                ];
-
-                var distFromCenter = Math.sqrt(
-                  Math.pow(middle[0], 2) +
-                  Math.pow(middle[1], 2) +
-                  Math.pow(middle[2], 2)
-                );
-
-                return [
-                  middle[0] * (radius / distFromCenter),
-                  middle[1] * (radius / distFromCenter),
-                  middle[2] * (radius / distFromCenter),
-                ];
-              }
+              return { faces: faces, vertices: vertices, radius: radius };
             }
 
-            function translateToFractalEdge(v) {
-              return v;
+
+          // Fractal Calculation Functions
+            function vertexToPower(v, n) {
+              var pow = Math.pow, sqrt = Math.sqrt,
+                  sin = Math.sin, cos  = Math.cos,
+                        atan2 = Math.atan2,
+
+              x = v[0], y = v[1], z = v[2],
+
+              radius = sqrt( pow(x, 2) + pow(y, 2) + pow(z, 2) ),
+              theta  = atan2( sqrt( pow(x, 2) + pow(y, 2) ), z ),
+              phi    = atan2( y, x );
+
+              return [
+                pow(radius, n) * sin(theta * n) * cos(phi * n),
+                pow(radius, n) * sin(theta * n) * sin(phi * n),
+                pow(radius, n) * cos(theta * n)
+              ];
             }
 
+            function isWithinSphere(v) {
+              return [ Math.pow(v[0], 2),
+                       Math.pow(v[1], 2),
+                       Math.pow(v[2], 2) ] <= Math.pow(RADIUS, 2);
+            }
+
+          // Vertex Manipulation Functions
+            function pushFromCenter(v, dist) {
+              var distFromCenter = getDistFromCenter(v);
+              return push(v, distFromCenter, distFromCenter + dist);
+            }
+
+            function getDistFromCenter(v) {
+              return Math.sqrt( Math.pow(v[0], 2) +
+                                Math.pow(v[1], 2) +
+                                Math.pow(v[2], 2) );
+            }
+
+            function push(v, from, to) {
+              return [ v[0] * (to / from),
+                       v[1] * (to / from),
+                       v[2] * (to / from) ];
+            }
+
+            function translateToFractalEdge(v, iterations) {
+              return pushFromCenter(v, isWithinSphere(v) ? 1 : -1);
+            }
+
+          // General Helper Functions
             function getArrayOf(len, item) {
                 var a, rem, currlen;
 
@@ -379,14 +431,10 @@ define([
             this.el.addEventListener( 'mousewheel',     onMouseWheel, false );
             this.el.addEventListener( 'DOMMouseScroll', onMouseWheel, false );
             function onMouseWheel( event ) {
-
-                // If there are selected objects, they will be scaled instead
-                if (canvas.selected.isEmpty()) {
-
-                    canvas.camera.projectionMatrix.makePerspective(
-                        FOV += canvas.getScrollDelta(event), W/H, 1, 1100
-                    );
-                }
+                canvas.camera.projectionMatrix.makePerspective(
+                    FOV += canvas.getScrollDelta(event), W/H, 1, 1100
+                );
+                event.preventDefault();
             }
         },
 
