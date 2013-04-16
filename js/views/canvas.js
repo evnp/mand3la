@@ -16,8 +16,14 @@ define([
       , FOV = 4 // Field of view for perspective camera
       , RENDERER = (Detector.webgl ? 'WebGL' : 'Canvas') + 'Renderer'
       , CAMSPEED = 0.4 // Speed of mouse camera rotation
-      , RADIUS = 0 // Radius of initial sphere; used for comparison in fractal equation
-      , NUM_VERTICES = 0 // Number of vertices in initial sphere
+
+      // Fractal Rendering Configuration
+      , VERTICES   = 500000
+      , BOUND      = 1000 // used for comparison in fractal equation
+      , TOLERANCE  = 0.1 // how close vertices must be to fractal edge. ^ = higher performance
+      , ITERATIONS = 6 // number of iterations to calculate z to. Determines fractal detail.
+      , POWER      = 8 // power of fractal (8 is ideal)
+      ;
 
     return Backbone.View.extend({
 
@@ -90,26 +96,100 @@ define([
             this.scene.add(this.camera);
 
         // Lights
-            var light1 = new THREE.DirectionalLight(0xffffff);
-            light1.position.x = 1;
-            light1.position.y = 1;
-            light1.position.z = 0.75;
-            light1.position.normalize();
+            //var light1 = new THREE.DirectionalLight(0xffffff);
+            //light1.position.x = 1;
+            //light1.position.y = 1;
+            //light1.position.z = 0.75;
+            //light1.position.normalize();
 
-            var light2 = new THREE.DirectionalLight(0x808080);
-            light2.position.x = -1;
-            light2.position.y = 1;
-            light2.position.z = -0.75;
-            light2.position.normalize();
+            //var light2 = new THREE.DirectionalLight(0x808080);
+            //light2.position.x = -1;
+            //light2.position.y = 1;
+            //light2.position.z = -0.75;
+            //light2.position.normalize();
 
-            var ambient = new THREE.AmbientLight(0x404040);
+            //var ambient = new THREE.AmbientLight(0x404040);
 
-            this.scene.add(light1);
-            this.scene.add(light2);
-            this.scene.add(ambient);
+            //this.scene.add(light1);
+            //this.scene.add(light2);
+            //this.scene.add(ambient);
+
+            var ambient = new THREE.AmbientLight( 0xffffff );
+            ambient.color.setHSL( 0.1, 0.3, 0.2 );
+            this.scene.add( ambient );
+
+
+            var dirLight = new THREE.DirectionalLight( 0xffffff, 0.125 );
+            dirLight.position.set( 0, -1, 0 ).normalize();
+            this.scene.add( dirLight );
+
+            dirLight.color.setHSL( 0.1, 0.7, 0.5 );
+
+            var textureFlare0 = THREE.ImageUtils.loadTexture( "images/lensflare0.png" );
+            var textureFlare2 = THREE.ImageUtils.loadTexture( "images/lensflare1.png" );
+            var textureFlare3 = THREE.ImageUtils.loadTexture( "images/lensflare2.png" );
+
+            addLight( 0.55,  0.9, 0.5, 50, -50, -1, this.scene );
+            addLight( 0.08,  0.8, 0.5, 0, 50, -1, this.scene );
+            //addLight( 0.995, 0.5, 0.9, 50,50, -1, this.scene );
+
+            function addLight( h, s, l, x, y, z, scene ) {
+
+              var light = new THREE.PointLight( 0xffffff, 1.5, 4500 );
+              light.color.setHSL( h, s, l );
+              light.position.set( x, y, z );
+              scene.add( light );
+
+              var flareColor = new THREE.Color( 0xffffff );
+              flareColor.setHSL( h, s, l + 0.5 );
+
+              var lensFlare = new THREE.LensFlare( textureFlare0, 700, 0.0, THREE.AdditiveBlending, flareColor );
+
+              lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+              lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+              lensFlare.add( textureFlare2, 512, 0.0, THREE.AdditiveBlending );
+
+              lensFlare.add( textureFlare3, 60, 0.6, THREE.AdditiveBlending );
+              lensFlare.add( textureFlare3, 70, 0.7, THREE.AdditiveBlending );
+              lensFlare.add( textureFlare3, 120, 0.9, THREE.AdditiveBlending );
+              lensFlare.add( textureFlare3, 70, 1.0, THREE.AdditiveBlending );
+
+              lensFlare.customUpdateCallback = lensFlareUpdateCallback;
+              lensFlare.position = light.position;
+
+              scene.add( lensFlare );
+            }
+
+            function lensFlareUpdateCallback( object ) {
+              var f, fl = object.lensFlares.length;
+              var flare;
+              var vecX = -object.positionScreen.x * 2;
+              var vecY = -object.positionScreen.y * 2;
+
+
+              for( f = 0; f < fl; f++ ) {
+
+                   flare = object.lensFlares[ f ];
+
+                   flare.x = object.positionScreen.x + vecX * flare.distance;
+                   flare.y = object.positionScreen.y + vecY * flare.distance;
+
+                   flare.rotation = 0;
+
+              }
+
+              object.lensFlares[ 2 ].y += 0.025;
+              object.lensFlares[ 3 ].rotation = object.positionScreen.x * 0.5 + THREE.Math.degToRad( 45 );
+
+            }
+
 
         // Renderer
             this.renderer = new THREE[RENDERER]();
+
+            this.renderer.gammaInput = true;
+            this.renderer.gammaOutput = true;
+            this.renderer.physicallyBasedShading = true;
 
         // Misc.
             var canvas = this;
@@ -125,39 +205,56 @@ define([
         // Render Fractal
 
             // Get starting sphere
-            var sphere   = getIcosphere(1000000),
+            var sphere   = getIcosphere(VERTICES),
                 vertices = sphere.geometry.vertices,
                 faces    = sphere.geometry.faces;
 
             RADIUS = sphere.geometry.radius;
+            RADIUS = 2.0;
 
             // Transform sphere geometry into fractal geometry
             for (var i = 0; i < vertices.length; i++) {
-              //vertices[i] = translateToFractalEdge(vertices[i], 1);
+              vertices[i] = translateToFractalEdge(vertices[i], 1);
+              // vertices[i][2] *= -1; // Cool transparency effect
             }
 
+            // Compute normals
+            var normals = new Array(vertices.length);
+            for (var i = 0; i < faces.length; i++) {
+              var normal = normalize( vertices[faces[i][0]],
+                                      vertices[faces[i][1]],
+                                      vertices[faces[i][2]] );
+
+              normals[faces[i][0]] = vavg(normal, normals[faces[i][0]]);
+              normals[faces[i][1]] = vavg(normal, normals[faces[i][1]]);
+              normals[faces[i][2]] = vavg(normal, normals[faces[i][2]]);
+            }
+
+        // Create geometry
+
             // Flatten faces+vertices into 1 dimensional array for geometry
-            var positions = new Float32Array( faces.length * 3 * 3 );
+            var flatVertices = new Float32Array( faces.length * 3 * 3 );
+            var flatNormals  = new Float32Array( faces.length * 3 * 3 );
             for ( var i = 0; i < faces.length; i++ ) {
               for ( var j = 0; j < 3; j++) {
                 for ( var k = 0; k < 3; k++) {
-                  positions[i*9 + j*3 + k] = vertices[faces[i][j]][k];
+                  flatVertices[i*9 + j*3 + k] = vertices[faces[i][j]][k];
+                   flatNormals[i*9 + j*3 + k] =  normals[faces[i][j]][k];
                 }
               }
             }
 
-            // Create geometry
             var geometry = new THREE.BufferGeometry()
             geometry.attributes = {
               position: {
                 itemSize: 3,
-                array: positions,
+                array: flatVertices,
                 numItems: sphere.faces * 3 * 3
               },
               normal: {
                 itemSize: 3,
-                array: positions, // Since fractal is centered at origin,
-                numItems: sphere.faces * 3 * 3 // vertex positions ARE normals.
+                array: flatNormals,
+                numItems: sphere.faces * 3 * 3
               },
               //color: {
               //  itemSize: 3,
@@ -166,13 +263,26 @@ define([
               //}
             };
 
+
             geometry.computeBoundingSphere();
 
-            // Create mesh
-            mesh = new THREE.Mesh(
-              geometry,
-              new THREE.MeshLambertMaterial({ color: 0xA9A9A9 })
-            );
+        // Create material
+
+            var material = new THREE.MeshPhongMaterial({
+              ambient: 0x333333,
+              color: 0xffffff,
+              specular: 0xffffff,
+              shininess: 50
+            });
+            //var material = new THREE.MeshNormalMaterial();
+            //var material = new THREE.MeshPhongMaterial();
+
+        // Create mesh
+
+            mesh = new THREE.Mesh( geometry, material );
+
+            // Rotate 90deg so that fractal is upright
+            mesh.rotation.x = -(Math.PI/2);
 
             // Add fractal to scene
             this.scene.add(mesh);
@@ -194,9 +304,6 @@ define([
                 info.faces    *= 4;
                 info.iterations++;
               }
-
-              NUM_VERTICES = info.vertices;
-              console.log(info)
 
               info.geometry = getIcosphereGeometry(info.iterations);
 
@@ -309,32 +416,56 @@ define([
 
 
           // Fractal Calculation Functions
-            function vertexToPower(v, n) {
-              var pow = Math.pow, sqrt = Math.sqrt,
-                  sin = Math.sin, cos  = Math.cos,
-                        atan2 = Math.atan2,
 
-              x = v[0], y = v[1], z = v[2],
+            function translateToFractalEdge(v, iterations) {
+              var zDist = 0,
+               pushDist = 0.1,
+                  start = true,  // Indicates whether this is the first pass
+                 inside = false, // Indicates whether the point is inside the fractal
+               switched = false; // Indicates when a point has changed direction
 
-              radius = sqrt( pow(x, 2) + pow(y, 2) + pow(z, 2) ),
-              theta  = atan2( sqrt( pow(x, 2) + pow(y, 2) ), z ),
-              phi    = atan2( y, x );
+              v = vmult(v, 0.5); // Factor down v to avoid _huge_ values of z
 
-              return [
-                pow(radius, n) * sin(theta * n) * cos(phi * n),
-                pow(radius, n) * sin(theta * n) * sin(phi * n),
-                pow(radius, n) * cos(theta * n)
-              ];
+              while (!atFractalEdge(zDist)) {
+                zDist = getDistFromCenter(getZn(v, ITERATIONS, POWER));
+
+                if (zDist < BOUND) {
+                  v = pushOut(v, pushDist);
+                  if (start) inside = true, start = false;
+                  else if (!inside) switched = true;
+                } else {
+                  v = pushIn(v, pushDist);
+                  if (start) inside = false, start = false;
+                  else if (inside) switched = true;
+                }
+                // If the point has changed direction, we are near the fractal edge.
+                // Start halving pushDist to hone in.
+                if (switched) pushDist /= 2;
+              }
+              return v;
             }
 
-            function isWithinSphere(v) {
-              return [ Math.pow(v[0], 2),
-                       Math.pow(v[1], 2),
-                       Math.pow(v[2], 2) ] <= Math.pow(RADIUS, 2);
+            function atFractalEdge(dist) {
+              return Math.abs(dist - BOUND) < TOLERANCE;
             }
+
+            // Mandelbrot Equation
+            // z(0) = 0            (complex zero)
+            // z(1) = c            ( z(0)^8 + c )
+            // z(n+1) = z(n)^8 + c
+
+            function getZn(v, n, p) {
+              var z = [ 0, 0, 0 ];
+              for (n; n >= 0; n--)
+                z = vadd(vpow(z, p), v);
+              return z;
+            }
+
 
           // Vertex Manipulation Functions
-            function pushFromCenter(v, dist) {
+
+            function pushIn(v, dist) { return pushOut(v, -dist); }
+            function pushOut(v, dist) {
               var distFromCenter = getDistFromCenter(v);
               return push(v, distFromCenter, distFromCenter + dist);
             }
@@ -351,11 +482,66 @@ define([
                        v[2] * (to / from) ];
             }
 
-            function translateToFractalEdge(v, iterations) {
-              return pushFromCenter(v, isWithinSphere(v) ? 1 : -1);
+            function vadd(a, b) {
+              return [ a[0] + b[0],
+                       a[1] + b[1],
+                       a[2] + b[2] ];
             }
 
+            function vsub(a, b) {
+              return [ a[0] - b[0],
+                       a[1] - b[1],
+                       a[2] - b[2] ];
+            }
+
+            function vmult(a, f) {
+              return [ a[0] * f,
+                       a[1] * f,
+                       a[2] * f ];
+            }
+
+            function vdiv(a, d) {
+              return [ a[0] / d,
+                       a[1] / d,
+                       a[2] / d ];
+            }
+
+            function vavg(a, b) {
+              return b ? vdiv(vadd(a, b), 2) : a;
+            }
+
+            function vpow(v, n) {
+              if (v === [ 0, 0, 0 ]) return v;
+
+              var pow = Math.pow, sqrt = Math.sqrt,
+                  sin = Math.sin, cos  = Math.cos,
+                        atan2 = Math.atan2,
+
+              x = v[0], y = v[1], z = v[2],
+
+              radius = sqrt( pow(x, 2) + pow(y, 2) + pow(z, 2) ),
+              theta  = atan2( sqrt( pow(x, 2) + pow(y, 2) ), z ),
+              phi    = atan2( y, x );
+
+              return [ pow(radius, n) * sin(theta * n) * cos(phi * n),
+                       pow(radius, n) * sin(theta * n) * sin(phi * n),
+                       pow(radius, n) * cos(theta * n) ];
+            }
+
+            function normalize(a, b, c) {
+                var x = crossProduct(vsub(a, b), vsub(a, c));
+                return vdiv(x, getDistFromCenter(x));
+            }
+
+            function crossProduct(a, b) {
+              return [ (a[1] * b[2]) - (a[2] * b[1]),
+                       (a[2] * b[0]) - (a[0] * b[2]),
+                       (a[0] * b[1]) - (a[1] * b[0]) ];
+            }
+
+
           // General Helper Functions
+
             function getArrayOf(len, item) {
                 var a, rem, currlen;
 

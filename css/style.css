@@ -5,6 +5,8 @@ html, body, #container, #content, #canvas {
 
     -webkit-user-select: none;
     -moz-user-select: none;
+
+    background: #000;
 }
 
 #content div { position: absolute; }
