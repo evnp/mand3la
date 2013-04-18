@@ -18,10 +18,11 @@ define([
       , CAMSPEED = 0.4 // Speed of mouse camera rotation
 
       // Fractal Rendering Configuration
-      , VERTICES   = 500000
+      , VERTICES   = 100000
       , BOUND      = 1000 // used for comparison in fractal equation
       , TOLERANCE  = 0.01 // how close vertices must be to fractal edge. ^ = higher performance
-      , ITERATIONS = 2 // number of iterations to calculate z to. Determines fractal detail.
+      , PUSH_DIST  = 0.1 // starting sampling density used to find fractal edge
+      , ITERATIONS = 1 // number of iterations to calculate z to. Determines fractal detail.
       , MAX_ITERATIONS = 9
       , POWER      = 8 // power of fractal (8 is ideal)
       , RENDERING  = false;
@@ -259,6 +260,8 @@ define([
 
             faces = refinedFaces;
           }
+
+          // Initialize normals as copy of vertices
           var normals = new Array(vertices.length);
           for (var i = 0; i < vertices.length; i++)
             normals[i] = vertices[i].slice();
@@ -288,7 +291,7 @@ define([
 
           // Transform sphere geometry into fractal geometry
           for (var i = 0; i < vertices.length; i++) {
-            vertices[i] = translateToFractalEdge(vertices[i], power, iteration);
+            vertices[i] = translateToFractalEdge(vertices[i], normals[i], power, iteration);
             //vertices[i][2] *= -1; // Cool transparency effect
           }
 
@@ -309,8 +312,17 @@ define([
             //  }
             //}
 
+          // Find and split elongated faces
+          //for (var i = 0; i < faces.length; i++) {
+          //  var length = getFaceLength(faces[i]);
+          //}
+
           // Compute normals
-          if (iteration > 1) {
+          if (iteration === 1) { // iteration 1 is a sphere - normals = vertices
+            for (var i = 0; i < vertices.length; i++)
+              normals[i] = vertices[i].slice();
+
+          } else {
             for (var i = 0; i < faces.length; i++) {
               var normal = normalize( vertices[faces[i][0]],
                                       vertices[faces[i][1]],
@@ -378,26 +390,28 @@ define([
 
       // Fractal Calculation Functions
 
-          function translateToFractalEdge(v, power, iteration) {
+          function translateToFractalEdge(vertex, normal, power, iteration) {
             var zDist = 0,
-             pushDist = 0.1,
+             pushDist = PUSH_DIST,
                 start = true,  // Indicates whether this is the first pass
                inside = false, // Indicates whether the point is inside the fractal
              switched = false; // Indicates when a point has changed direction
 
-            v = vmult(v, 0.5); // Factor down v to avoid _huge_ values of z
+            vertex = vmult(vertex, 0.5); // Factor down v to avoid _huge_ values of z
 
             while (!atFractalEdge(zDist)) {
-              zDist = getDistFromCenter(getZn(v, power, iteration));
+              zDist = getDistFromCenter(getZn(vertex, power, iteration));
 
               if (zDist < BOUND) {
-                v = pushOut(v, pushDist);
+                vertex = pushOut(vertex, pushDist);
+                //vertex = pushAlongNormal(vertex, normal, pushDist);
 
                 if (start) inside = true, start = false;
                 else if (!inside) switched = true;
 
               } else {
-                v = pushIn(v, pushDist);
+                vertex = pushIn(vertex, pushDist);
+                //vertex = pushAlongNormal(vertex, normal, -pushDist);
 
                 if (start) inside = false, start = false;
                 else if (inside) switched = true;
@@ -406,7 +420,7 @@ define([
               // Start halving pushDist to hone in.
               if (switched) pushDist /= 2;
             }
-            return v;
+            return vertex;
           }
 
           function atFractalEdge(dist) {
@@ -443,6 +457,10 @@ define([
             return [ v[0] * (to / from),
                      v[1] * (to / from),
                      v[2] * (to / from) ];
+          }
+
+          function pushAlongNormal(v, n, dist) {
+            return vadd(v, vmult(n, dist));
           }
 
           function vadd(a, b) {
@@ -531,31 +549,13 @@ define([
                      (a[0] * b[1]) - (a[1] * b[0]) ];
           }
 
+          function getFaceLength(face) {
+            var a = getDistFromCenter(vertices[face[0]]),
+                b = getDistFromCenter(vertices[face[1]]),
+                c = getDistFromCenter(vertices[face[2]]);
 
-      // General Helper Functions
-
-          function getArrayOf(len, item) {
-              var a, rem, currlen;
-
-              if (len == 0) {
-                  return [];
-              }
-              a = [item];
-              currlen = 1;
-              while (currlen < len) {
-                  rem = len - currlen;
-                  if (rem < currlen) {
-                      a = a.concat(a.slice(0, rem));
-                  }
-                  else {
-                      a = a.concat(a);
-                  }
-                  currlen = a.length;
-              }
-              return a;
+            return Math.max(a, b, c) - Math.min(a, b, c);
           }
-
-
         },
 
         render: function () {
@@ -620,19 +620,66 @@ define([
         // Fractal Controls
             $(document).on('keydown', function (e) {
 
-              if (e.which === 38 || // up
-                  e.which === 40 || // down
-                 (e.which > 48 && e.which < 58) // number
+              if (
+                e.which === 38 || // up
+                e.which === 40 || // down
+                e.which === 37 || // left
+                e.which === 39 || // right
+               (e.which > 48 && e.which < 58) // number
               ) {
-                var oldPwr = POWER, oldIter = ITERATIONS;
+                var rerender = false;
 
-                if (e.which === 38 && ITERATIONS < MAX_ITERATIONS) ITERATIONS++;
-                if (e.which === 40 && ITERATIONS > 1)              ITERATIONS--;
-                else if (e.which > 49 && e.which < 58)     POWER = e.which - 48;
+                if (e.which === 37) {
+                  if (PUSH_DIST < 0.1) {
+                    TOLERANCE = 0.01;
+                    PUSH_DIST = 0.1;
 
-                if (POWER !== oldPwr || ITERATIONS !== oldIter) {
-                  canvas.renderFractal(POWER, ITERATIONS);
+                    canvas.geometry = canvas.getIcosphere(
+                      VERTICES, canvas.getIcosahedron()
+                    );
+                    rerender = true;
+
+                  } else if (VERTICES > 200000){
+                    VERTICES -= 200000;
+                    rerender = true;
+                  }
+
+                } else if (e.which === 39) {
+                  if (VERTICES < 500000) {
+                    VERTICES += 200000;
+                    rerender = true;
+
+                  } else if (PUSH_DIST === 0.1) {
+                    TOLERANCE *= 0.2;
+                    PUSH_DIST *= 0.2;
+                    console.log(PUSH_DIST)
+
+                    canvas.geometry = canvas.getIcosphere(
+                      VERTICES, canvas.getIcosahedron(2)
+                    );
+                    rerender = true;
+
+                  } else if (PUSH_DIST < 0.1 && PUSH_DIST > 0.01){
+                    TOLERANCE *= 0.2;
+                    PUSH_DIST *= 0.2;
+
+                    canvas.geometry = canvas.getIcosphere(
+                      VERTICES, canvas.getIcosahedron(1)
+                    );
+                    rerender = true;
+                  }
+
+                } else if (e.which === 38) {
+                  if (ITERATIONS < MAX_ITERATIONS) ITERATIONS++, rerender = true;
+
+                } else if (e.which === 40) {
+                  if (ITERATIONS > 1) ITERATIONS--, rerender = true;
+
+                } else if (e.which > 49 && e.which < 58) {
+                  POWER = e.which - 48, rerender = true;
                 }
+
+                if (rerender) canvas.renderFractal(POWER, ITERATIONS);
               }
               e.preventDefault();
             });
@@ -658,7 +705,7 @@ define([
         },
 
     // Utility
-        getIcosahedron: function () {
+        getIcosahedron: function (numFaces) {
           var t = (1.0 + Math.sqrt(5.0)) / 2.0,
               vertices = [
                 [ -1,  t,  0 ],
@@ -703,7 +750,9 @@ define([
                 [ 8, 6,  7 ],
                 [ 9, 8,  1 ]
               ];
-          return { faces: faces, vertices: vertices, numEdges: 30 };
+
+          numFaces = numFaces || faces.length;
+          return { faces: faces.slice(0, numFaces), vertices: vertices, numEdges: 30 };
         },
 
         getIntersectBetween: function (x, y, obj) {
@@ -758,17 +807,6 @@ define([
                 _.flatten(list.map(fn))   :
                 _.flatten(_.map(list, fn));
             return unique ? _.uniq(results) : results;
-        },
-
-        modifierPressed: function (e) {
-            return e.metaKey || // meta (command) key
-                  ($.browser.webkit &&
-                      (e.which === 91   ||
-                       e.which === 93)) ||
-                  ($.browser.mozilla &&
-                       e.which === 224) ||
-                   e.ctrlKey || // ctrl key
-                   e.which === 17;
         }
     });
 });
