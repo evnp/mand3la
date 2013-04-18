@@ -18,11 +18,13 @@ define([
       , CAMSPEED = 0.4 // Speed of mouse camera rotation
 
       // Fractal Rendering Configuration
-      , VERTICES   = 100000
+      , VERTICES   = 500000
       , BOUND      = 1000 // used for comparison in fractal equation
       , TOLERANCE  = 0.01 // how close vertices must be to fractal edge. ^ = higher performance
-      , ITERATIONS = 10 // number of iterations to calculate z to. Determines fractal detail.
+      , ITERATIONS = 2 // number of iterations to calculate z to. Determines fractal detail.
+      , MAX_ITERATIONS = 9
       , POWER      = 8 // power of fractal (8 is ideal)
+      , RENDERING  = false;
       ;
 
     return Backbone.View.extend({
@@ -170,11 +172,11 @@ define([
 
         // Create Geometry
 
-            this.geometry = this.getIcosphere(500000);
+            this.geometry = this.getIcosphere(VERTICES);
 
         // Render Fractal
 
-            this.renderFractal(8, 6);
+            this.renderFractal(POWER, ITERATIONS);
         },
 
     // Icosphere Generator
@@ -257,7 +259,11 @@ define([
 
             faces = refinedFaces;
           }
-          return { faces: faces, vertices: vertices };
+          var normals = new Array(vertices.length);
+          for (var i = 0; i < vertices.length; i++)
+            normals[i] = vertices[i].slice();
+
+          return { faces: faces, vertices: vertices, normals: normals };
 
           function getDistFromCenter(v) {
             return Math.sqrt( Math.pow(v[0], 2) +
@@ -275,17 +281,16 @@ define([
     // Fractal Renderer
 
         renderFractal: function (power, iteration) {
+
           var vertices = this.geometry.vertices,
                  faces = this.geometry.faces,
-               normals = null;
+               normals = this.geometry.normals;
 
           // Transform sphere geometry into fractal geometry
-          if (iteration > 1) {
-
-            for (var i = 0; i < vertices.length; i++) {
-              vertices[i] = translateToFractalEdge(vertices[i], power, iteration);
-              //vertices[i][2] *= -1; // Cool transparency effect
-            }
+          for (var i = 0; i < vertices.length; i++) {
+            vertices[i] = translateToFractalEdge(vertices[i], power, iteration);
+            //vertices[i][2] *= -1; // Cool transparency effect
+          }
 
             // Progressive iteration
             //for (var i = 0; i < faces.length; i++) {
@@ -304,8 +309,8 @@ define([
             //  }
             //}
 
-            // Compute normals
-            normals = new Array( vertices.length );
+          // Compute normals
+          if (iteration > 1) {
             for (var i = 0; i < faces.length; i++) {
               var normal = normalize( vertices[faces[i][0]],
                                       vertices[faces[i][1]],
@@ -324,8 +329,7 @@ define([
             for ( var j = 0; j < 3; j++) {
               for ( var k = 0; k < 3; k++) {
                 flatVertices[i*9 + j*3 + k] = vertices[faces[i][j]][k];
-                 flatNormals[i*9 + j*3 + k] = normals ? normals[faces[i][j]][k] :
-                                                       vertices[faces[i][j]][k];
+                 flatNormals[i*9 + j*3 + k] = normals[faces[i][j]][k];
               }
             }
           }
@@ -343,12 +347,7 @@ define([
               itemSize: 3,
               array: flatNormals,
               numItems: flatNormals.length
-            },
-            //color: {
-            //  itemSize: 3,
-            //  array: getArrayOf( sphere.faces * 3 * 3, 80 ),
-            //  numItems: sphere.faces * 3 * 3
-            //}
+            }
           };
 
           geometry.computeBoundingSphere();
@@ -364,13 +363,18 @@ define([
 
       // Create mesh
 
-          mesh = new THREE.Mesh( geometry, material );
+          // Get rid of old mesh if necessary
+          if (this.mesh) {
+            this.scene.remove(this.mesh);
+          }
+
+          this.mesh = new THREE.Mesh( geometry, material );
 
           // Rotate 90deg so that fractal is upright
-          mesh.rotation.x = -(Math.PI/2);
+          this.mesh.rotation.x = -(Math.PI/2);
 
           // Add fractal to scene
-          this.scene.add(mesh);
+          this.scene.add(this.mesh);
 
       // Fractal Calculation Functions
 
@@ -610,30 +614,28 @@ define([
                 canvas.camera.projectionMatrix.makePerspective(
                     FOV += (canvas.getScrollDelta(event) * (FOV / 12)), W/H, 1, 1100
                 );
-                console.log(FOV)
                 event.preventDefault();
             }
 
         // Fractal Controls
-            $(document).on('keydown.down', function (e) {
-              console.log('down')
+            $(document).on('keydown', function (e) {
+
+              if (e.which === 38 || // up
+                  e.which === 40 || // down
+                 (e.which > 48 && e.which < 58) // number
+              ) {
+                var oldPwr = POWER, oldIter = ITERATIONS;
+
+                if (e.which === 38 && ITERATIONS < MAX_ITERATIONS) ITERATIONS++;
+                if (e.which === 40 && ITERATIONS > 1)              ITERATIONS--;
+                else if (e.which > 49 && e.which < 58)     POWER = e.which - 48;
+
+                if (POWER !== oldPwr || ITERATIONS !== oldIter) {
+                  canvas.renderFractal(POWER, ITERATIONS);
+                }
+              }
               e.preventDefault();
             });
-
-            $(document).on('keydown.up', function (e) {
-              console.log('up')
-              e.preventDefault();
-            });
-            for (var i = 1; i < 10; i++) {
-              $(document).on('keydown.'+ i, function (e) {
-                var power = e.which - 48,
-                    iteration = 1;
-
-                canvas.renderFractal(power, iteration, 100000);
-
-                e.preventDefault();
-              });
-            }
         },
 
         positionCamera: function () {
