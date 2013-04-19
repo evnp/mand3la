@@ -388,6 +388,12 @@ define([
           // Add fractal to scene
           this.scene.add(this.mesh);
 
+      // Update Fractal Information
+          var info = $('#info');
+          info.find('.power .value'    ).html(POWER);
+          info.find('.iteration .value').html(ITERATIONS);
+          info.find('.vertices .value' ).html(VERTICES / 1000 + 'k');
+
       // Fractal Calculation Functions
 
           function translateToFractalEdge(vertex, normal, power, iteration) {

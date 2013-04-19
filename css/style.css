@@ -7,6 +7,8 @@ html, body, #container, #content, #canvas {
     -moz-user-select: none;
 
     background: #000;
+
+    overflow: hidden;
 }
 
 #content div { position: absolute; }
@@ -146,3 +148,24 @@ html, body, #container, #content, #canvas {
     font-weight: 300;
     letter-spacing: .1em;
 }
+
+#info {
+  position: absolute;
+  bottom: 0;
+  width: 1680px;
+  color: white;
+  font: 24px/24px futura-pt, Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  padding: 20px 13%;
+}
+
+#info div {
+  float: left;
+  width: 25%;
+  text-align: center;
+  position: relative;
+  margin-top: 20px;
+}
+
+.typekit-badge { display: none !important; }
