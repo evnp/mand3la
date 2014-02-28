@@ -12,15 +12,23 @@
 	<!-- Load the script "js/bootstrap.js" as our entry point -->
 	<script data-main="js/bootstrap" src="js/libs/require/require.js"></script>
 
+  <!-- Icon Font -->
+  <link href="//netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css" rel="stylesheet">
+
     <!-- For Typekit (web font provider) -->
     <script type="text/javascript" src="http://use.typekit.com/zxd8mpq.js"></script>
     <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
 </head>
 <body>
 
-<div id="container">
-  <div id="content"></div>
-</div>
+  <div id="content">
+    <div id="canvas"></div>
+    <div id="info">
+      <div class="power">    <button class="prev">◄</button>power:     <span class="value">8</span><button class="next">►</button>   <p>The exponent used in the fractal equation, governing the shape of the Mandelbulb.</p></div>
+      <div class="iteration"><button class="prev">◄</button>iteration: <span class="value">1</span><button class="next">►</button>   <p>The number of times the fractal equation is applied to each vertex, getting closer and closer to the true 3-dimensional set.</p></div>
+      <div class="vertices"> <button class="prev">◄</button>vertices:  <span class="value">100</span>k<button class="next">►</button><p>The number of vertices used to approximate the fractal shape. Greater than 600k renders 1/6th of the full bulb to make extreme detail possible.</p></div>
+    </div>
+  </div>
 
 </body>
 </html>

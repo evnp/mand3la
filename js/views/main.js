@@ -14,8 +14,6 @@ define([
         el: '#content',
 
         render: function () {
-            this.$el.html(mainTemplate);
-
             var canvas = new Canvas;
             (new Controls).render(canvas);
             canvas.render();

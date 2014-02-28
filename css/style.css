@@ -11,8 +11,6 @@ html, body, #container, #content, #canvas {
     overflow: hidden;
 }
 
-#content div { position: absolute; }
-
 #title {
     margin: 24px;
     margin-left: 0;
@@ -41,114 +39,6 @@ html, body, #container, #content, #canvas {
     white-space: nowrap;
 }
 
-/* Title Animation - disabled *//*
-#title .text:hover {
-    margin-left: 42px;
-}*/
-
-#title .browser-warning {
-    margin-left: 16px;
-    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
-    font-weight: 300;
-    letter-spacing: .1em;
-    color: #777;
-}
-
-#controls {
-    margin: 24px;
-    float: left;
-    bottom: 0px;
-    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
-    font-weight: 300;
-    letter-spacing: .1em;
-    color: #777;
-    height: 360px;
-}
-
-#controls div {
-    position: relative;
-    float: left;
-}
-
-/* Prevent unwanted text selection */
-#controls div.text {
-    z-index: -1;
-}
-
-#controls .labels {
-    text-align: right;
-    clear: left;
-}
-
-#controls .entries {
-    text-align: left;
-}
-
-#controls .directions {
-    clear: left;
-}
-
-#controls .no-fade {
-    position: absolute;
-    top: -68px;
-    width: 300px;
-}
-
-#controls .show-hide {
-    background: url('../images/arrow-black.png') center no-repeat;
-    padding: 12px;
-    width: 11px;
-    height: 11px;
-    margin: 16px;
-    margin-left: 7px;
-}
-
-#demo-btn {
-    background-color: white;
-    width: 165px;
-    height: 34px;
-    position: relative;
-    color: red;
-    letter-spacing: .24em;
-    font-size: 16px;
-    border: solid 1px black;
-    margin: 16px;
-    cursor: pointer;
-}
-
-#demo-btn div {
-    width: 100%;
-    padding: 8px 2px;
-    position: absolute;
-    text-align: center;
-}
-
-#demo-btn .replay {
-    padding: 0;
-}
-
-#demo-btn .replay div {
-    position: relative;
-    padding: 8px 0;
-}
-
-#demo-btn .again {
-    width: 56%;
-    text-indent: 2px;
-}
-
-#demo-btn .new {
-    width: 43%;
-    border-left: solid 1px black;
-    text-indent: 4px;
-}
-
-#canvas .demo-tooltip {
-    font: 18px/18px futura-pt, Arial, Helvetica, sans-serif;
-    font-weight: 300;
-    letter-spacing: .1em;
-}
-
 #info {
   position: absolute;
   bottom: 0;
@@ -158,6 +48,7 @@ html, body, #container, #content, #canvas {
   letter-spacing: 0.3em;
   text-transform: uppercase;
   padding: 20px 13%;
+  text-shadow: 1px 0px 1px black;
 }
 
 #info div {
@@ -168,4 +59,67 @@ html, body, #container, #content, #canvas {
   margin-top: 20px;
 }
 
-.typekit-badge { display: none !important; }
+#info p {
+  font-size: 16px;
+  text-transform: none;
+  letter-spacing: 0.12em;
+  padding: 0 12px;
+}
+
+.typekit-badge {
+  display: none !important;
+}
+
+.prev, .next {
+  font-size: 16px;
+  color: white;
+  padding: 0 20px 0 10px;
+  cursor: pointer;
+  outline: none;
+  text-shadow: 1px 0px 1px black;
+}
+.prev:hover, .next:hover {
+  color: #bbb;
+}
+.prev:active, .next:active {
+  color: #555;
+}
+
+.loading {
+  color: white;
+  font-size: 100px;
+  line-height: 100px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 400px;
+  height: 100px;
+  margin-left: -200px;
+  margin-top: -50px;
+  text-align: center;
+  vertical-align: center;
+}
+
+p.loading {
+  font: 24px futura-pt, Arial, Helvetica, sans-serif;
+  text-shadow: 1px 0px 1px black;
+  white-space: nowrap;
+  line-height: 95px;
+}
+
+/* BUTTON RESET */
+button::-moz-focus-inner {
+  border:0;
+  padding:0
+}
+button {
+  width:auto;
+  border:0 none;
+  margin:0;
+  padding:0;
+  background:transparent;
+  overflow:visible;
+  /* Stupid IE */
+  font:14px arial, sans-serif;
+  #vertical-align:middle; /* IE6,IE7 */
+}

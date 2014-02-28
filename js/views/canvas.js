@@ -388,12 +388,6 @@ define([
           // Add fractal to scene
           this.scene.add(this.mesh);
 
-      // Update Fractal Information
-          var info = $('#info');
-          info.find('.power .value'    ).html(POWER);
-          info.find('.iteration .value').html(ITERATIONS);
-          info.find('.vertices .value' ).html(VERTICES / 1000 + 'k');
-
       // Fractal Calculation Functions
 
           function translateToFractalEdge(vertex, normal, power, iteration) {
@@ -624,6 +618,105 @@ define([
             }
 
         // Fractal Controls
+            $('#info').on('click', 'button', function (e) {
+              var parentClass = $(this).parent().attr('class'),
+                  buttonClass = $(this).attr('class'),
+                  $value = $(this).siblings('.value'),
+                  value = parseInt($value.html());
+
+
+              switch (parentClass +' '+ buttonClass) {
+                case 'power prev':
+                  if (value > 1) {
+                    value--;
+                    POWER = value;
+                    rerender = true;
+                  }
+                  break;
+
+                case 'power next':
+                  if (value < 9) {
+                    value++;
+                    POWER = value;
+                    rerender = true;
+                  }
+                  break;
+
+                case 'iteration prev':
+                  if (ITERATIONS > 1) {
+                    ITERATIONS--;
+                    rerender = true;
+                    value--;
+                  }
+                  break;
+
+                case 'iteration next':
+                  if (ITERATIONS < MAX_ITERATIONS) {
+                    ITERATIONS++;
+                    rerender = true;
+                    value++;
+                  }
+                  break;
+
+                case 'vertices prev':
+                  if (value > 100) {
+                    value -= 100;
+
+                    if (PUSH_DIST < 0.1) {
+                      TOLERANCE = 0.01;
+                      PUSH_DIST = 0.1;
+
+                      canvas.geometry = canvas.getIcosphere(
+                        VERTICES, canvas.getIcosahedron()
+                      );
+                      rerender = true;
+
+                    } else {
+                      VERTICES -= 100000;
+                      rerender = true;
+                    }
+                  }
+                  break;
+
+                case 'vertices next':
+                  value += 100;
+
+                  if (VERTICES < 500000) {
+                    VERTICES += 100000;
+                    rerender = true;
+
+                  } else if (PUSH_DIST === 0.1) {
+                    TOLERANCE *= 0.2;
+                    PUSH_DIST *= 0.2;
+
+                    canvas.geometry = canvas.getIcosphere(
+                      VERTICES, canvas.getIcosahedron(2)
+                    );
+                    rerender = true;
+
+                  } else if (PUSH_DIST < 0.1 && PUSH_DIST > 0.01){
+                    TOLERANCE *= 0.2;
+                    PUSH_DIST *= 0.2;
+
+                    canvas.geometry = canvas.getIcosphere(
+                      VERTICES, canvas.getIcosahedron(1)
+                    );
+                    rerender = true;
+                  }
+                  break;
+              }
+
+              if (rerender) {
+                $value.html(value);
+                $('#content').append('<i class="loading fa fa-refresh fa-spin"></i><p class="loading">calculating vertex positions...</p>');
+
+                setTimeout(function () {
+                  canvas.renderFractal(POWER, ITERATIONS);
+                  $('#content .loading').fadeOut(function () { $(this).remove(); });
+                }, 400);
+              }
+            });
+
             $(document).on('keydown', function (e) {
 
               if (
@@ -658,7 +751,6 @@ define([
                   } else if (PUSH_DIST === 0.1) {
                     TOLERANCE *= 0.2;
                     PUSH_DIST *= 0.2;
-                    console.log(PUSH_DIST)
 
                     canvas.geometry = canvas.getIcosphere(
                       VERTICES, canvas.getIcosahedron(2)
